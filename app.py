@@ -79,20 +79,21 @@ documents = load_documents()
 embeddings = load_embedding()
 chunks = get_splitted_chunks()
 
-@st.cache_resource # Fixed caching decorator for database objects
-def create_vector_db(chunks, _embeddings):
-    # To Build Vector DB
-    vectorstore = FAISS.from_documents(chunks, _embeddings)
-    vectorstore.save_local("faiss_index")
-    return vectorstore
+@st.cache_data
+def create_vector_db(chunks,_embeddings):
+  # To Build Vector DB
+  vectorstore = FAISS.from_documents(chunks, _embeddings)
+  vectorstore.save_local("faiss_index")
+  return vectorstore
 
-@st.cache_resource # Fixed caching decorator for retriever objects
+@st.cache_data
 def create_retriever(_vectorstore, k_value):
-    retriever = vectorstore.as_retriever(search_kwargs={"k": k_value})
-    return retriever
+  retriever = _vectorstore.as_retriever(search_kwargs={"k": k_value})
+  return retriever
 
-vectorstore = create_vector_db(chunks, embeddings)
-retriever = create_retriever(vectorstore, k_slider) 
+vectorstore = create_vector_db(chunks,embeddings)
+k_slider = st.sidebar.slider("Select Top K-Value",min_value = 1, max_value = 10)
+retriever = create_retriever(vectorstore, k_slider)
 # ============================STEP 6: LCEL RAG CHAIN============================
 llm = ChatGoogleGenerativeAI(model="gemini-3.5-flash")
 prompt = ChatPromptTemplate.from_template("""
