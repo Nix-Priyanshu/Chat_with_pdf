@@ -33,45 +33,43 @@ else:
 uploaded_file = st.sidebar.file_uploader("Upload PDF File", type = ["pdf"])
 
 if uploaded_file:
-    with st.spinner("Reading PDF File"):
-        data = uploaded_file.read()
-        # Note: st.sidebar.pdf(data) does not exist in standard Streamlit components
+  with st.spinner("Reading PDF File"):
+    data = uploaded_file.read()
+    st.sidebar.pdf(data)
 
 if uploaded_file is not None:
     save_dir = "pdf_files"
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
-
-    # Indentation Fixed: Kept inside the if block to prevent app from crashing on load
-    file_path = os.path.join(save_dir, uploaded_file.name)
-    with open(file_path, "wb") as f:
-        f.write(uploaded_file.getbuffer())
-    st.write(file_path)
+      
+file_path = os.path.join(save_dir, uploaded_file.name)
+with open(file_path, "wb") as f:
+    f.write(uploaded_file.getbuffer())
+st.write(file_path)
 
 # ============================STEP 4: LOAD RESOURCES============================
 @st.cache_data
 def load_documents():
-    loader = PyPDFLoader(uploaded_file)
-    documents = loader.load()
-    return documents
+  loader = PyPDFLoader(file_path)
+  documents = loader.load()
+  return documents
 
 # st.cache_data: to load data only one time
 # st.cache_resource : to load resource only one time
 
 @st.cache_resource
 def load_embedding():
-    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-    return embeddings
+  embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+  return embeddings
+
 
 @st.cache_data
-def get_splitted_chunks(documents):
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=200
-    )
-    chunks = splitter.split_documents(documents)
-    return chunks
-
+def get_splitted_chunks():
+  splitter = RecursiveCharacterTextSplitter(
+    chunk_size=1000,
+    chunk_overlap=200)
+  chunks = splitter.split_documents(documents)
+  return chunks
 
 # ============================STEP 5: GET and LOAD DOCS============================
 
@@ -94,6 +92,8 @@ def create_retriever(_vectorstore, k_value):
 vectorstore = create_vector_db(chunks,embeddings)
 k_slider = st.sidebar.slider("Select Top K-Value",min_value = 1, max_value = 10)
 retriever = create_retriever(vectorstore, k_slider)
+
+
 # ============================STEP 6: LCEL RAG CHAIN============================
 llm = ChatGoogleGenerativeAI(model="gemini-3.5-flash")
 prompt = ChatPromptTemplate.from_template("""
@@ -106,22 +106,21 @@ Context:
 Question: {question}
 """)
 
-
 def format_docs(docs):
     # Join chunks of retrieved docs
     return "\n\n".join(doc.page_content for doc in docs)
 
-
 with st.spinner("Building RAG Chain"):
-    rag_chain = (
-        {"context": retriever | format_docs, "question": RunnablePassthrough()}
-        | prompt
-        | llm
-        | StrOutputParser()
-    )
+  rag_chain = (
+    {"context": retriever | format_docs, "question": RunnablePassthrough()}
+    | prompt
+    | llm
+    | StrOutputParser())
+
+
 # ============================GET USER INPUT============================
-user_question = st.text_area("Ask Question: ")
-if user_question:
+ user_question = st.text_area("Ask Question: ")
+  if user_question:
     if st.button("Get Answer"):
-        with st.spinner("Wait.."):
-            st.write_stream(rag_chain.stream(user_question))
+      with st.spinner("Wait.."):
+        st.write_stream(rag_chain.stream(user_question))
