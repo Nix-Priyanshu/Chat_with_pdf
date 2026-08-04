@@ -75,9 +75,9 @@ def get_splitted_chunks(documents):
 
 # ============================STEP 5: GET and LOAD DOCS============================
 
-documents = load_documents(uploaded_file)
+documents = load_documents()
 embeddings = load_embedding()
-chunks = get_splitted_chunks(documents)
+chunks = get_splitted_chunks()
 
 @st.cache_resource # Fixed caching decorator for database objects
 def create_vector_db(chunks, _embeddings):
