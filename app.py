@@ -122,5 +122,5 @@ with st.spinner("Building RAG Chain"):
 user_question = st.text_area("Ask Question: ")
 if user_question:
     if st.button("Get Answer"):
-        with st.spinner("wait ..."):
-          st.markdown(rag_chain.stream(user_question)answer)
+        with st.spinner("Wait.."):
+            st.write_stream(rag_chain.stream(user_question))
